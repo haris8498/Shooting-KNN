@@ -1,0 +1,56 @@
+[
+  {
+    "score": 290,
+    "correctEnemyKills": 11,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 6,
+    "totalPlanes": 35,
+    "id": 1778410656387,
+    "date": "2026-05-10T10:57:36.387Z"
+  },
+  {
+    "score": 80,
+    "correctEnemyKills": 2,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 6,
+    "totalPlanes": 16,
+    "id": 1778408416698,
+    "date": "2026-05-10T10:20:16.698Z"
+  },
+  {
+    "score": -10,
+    "correctEnemyKills": 4,
+    "friendlyFireMistakes": 3,
+    "missedEnemies": 6,
+    "totalPlanes": 15,
+    "id": 1778405072604,
+    "date": "2026-05-10T09:24:32.604Z"
+  },
+  {
+    "score": -10,
+    "correctEnemyKills": 4,
+    "friendlyFireMistakes": 3,
+    "missedEnemies": 5,
+    "totalPlanes": 15,
+    "id": 1778405072596,
+    "date": "2026-05-10T09:24:32.596Z"
+  },
+  {
+    "score": 30,
+    "correctEnemyKills": 0,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 6,
+    "totalPlanes": 12,
+    "id": 1778404792688,
+    "date": "2026-05-10T09:19:52.688Z"
+  },
+  {
+    "score": 30,
+    "correctEnemyKills": 0,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 5,
+    "totalPlanes": 12,
+    "id": 1778404792670,
+    "date": "2026-05-10T09:19:52.670Z"
+  }
+]
