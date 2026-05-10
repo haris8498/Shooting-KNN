@@ -92,10 +92,14 @@ html, body {
 /* ===== SCAN LINE MOVING ===== */
 .moving-scan {
   position: absolute;
-  left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0,255,136,.25), transparent);
-  animation: scan-line 4s linear infinite;
+  top: 50%;
+  left: 50%;
+  width: 20%;
+  height: 1px;
+  background: var(--clr-green);
+  opacity: 0.6;
+  transform-origin:left center;
+  animation: radar-sweep 4s linear infinite;
   pointer-events: none;
   z-index: 3;
 }

@@ -51,7 +51,6 @@ function AppContent() {
 
   return (
     <div className="military-bg" style={{ minHeight:'100vh', height: isPlay ? '100vh' : 'auto', overflow: isPlay ? 'hidden' : 'auto', display:'flex', flexDirection:'column', position:'relative' }}>
-      <div className="moving-scan" />
       <NavBar />
       <main style={{ flex:1, display:'flex', flexDirection:'column', overflow: isPlay ? 'hidden' : 'visible', position:'relative', zIndex:1 }}>
         <Routes>
