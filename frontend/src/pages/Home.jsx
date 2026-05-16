@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import { Shield, Settings, Activity, Target, Radio, Crosshair } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const formatClassifierLabel = (classifier) => {
+  if (!classifier) return 'Model';
+  return classifier.toString().replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+};
+
 const RadarBg = () => (
   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none', overflow:'hidden' }}>
     {[300,240,180,120,60].map((s,i) => (
@@ -48,7 +53,10 @@ const cards = [
   },
 ];
 
-const Home = () => (
+const Home = () => {
+  const classifierLabel = formatClassifierLabel(localStorage.getItem('selectedClassifier') || 'kNN');
+  
+  return (
   <div style={{ minHeight:'calc(100vh - 60px)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 24px', position:'relative', overflow:'hidden' }}>
     <RadarBg />
 
@@ -69,10 +77,10 @@ const Home = () => (
         AI PLANE DEFENSE
       </h1>
       <h2 className="font-military" style={{ fontSize:'clamp(14px,2.5vw,22px)', color:'var(--clr-cyan)', letterSpacing:'0.25em', marginBottom:20 }}>
-        SYSTEM — kNN TACTICAL CLASSIFIER
+        SYSTEM — {classifierLabel} TACTICAL CLASSIFIER
       </h2>
       <p className="font-terminal" style={{ fontSize:13, color:'var(--clr-text-dim)', maxWidth:560, margin:'0 auto', lineHeight:1.7 }}>
-        An interactive machine learning simulator. Defend your base by classifying incoming aircraft using real-time k-Nearest Neighbor predictions.
+        An interactive machine learning simulator. Defend your base by classifying incoming aircraft using real-time {classifierLabel} predictions.
       </p>
     </motion.div>
 
@@ -105,14 +113,20 @@ const Home = () => (
     </div>
 
     {/* Bottom status bar */}
-    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:.8 }} className="font-terminal" style={{ marginTop:48, display:'flex', gap:32, fontSize:10, color:'var(--clr-text-dim)', position:'relative', zIndex:1 }}>
-      {['kNN ENGINE: READY','RADAR: ACTIVE','THREAT DATABASE: LOADED','ML ACCURACY: COMPUTED'].map(s => (
+      <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:.8 }} className="font-terminal" style={{ marginTop:48, display:'flex', gap:32, fontSize:10, color:'var(--clr-text-dim)', position:'relative', zIndex:1 }}>
+      {[
+        `${classifierLabel.toUpperCase()} ENGINE: READY`,
+        'RADAR: ACTIVE',
+        'THREAT DATABASE: LOADED',
+        'ML ACCURACY: COMPUTED'
+      ].map(s => (
         <span key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <span className="status-dot" style={{ width:5, height:5 }} />{s}
         </span>
       ))}
     </motion.div>
   </div>
-);
+  );
+};
 
 export default Home;

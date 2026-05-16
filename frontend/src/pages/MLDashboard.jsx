@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { mlService } from '../services/api';
-import { Activity, AlertTriangle, Radio } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Activity, AlertTriangle, Radio, BarChart3, TrendingUp, Zap } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid } from 'recharts';
 import { motion } from 'framer-motion';
 
 const MetricCard = ({ label, value, color }) => (
@@ -21,13 +21,46 @@ const CustomTooltip = ({ active, payload }) => {
   );
 };
 
+const formatClassifierLabel = (classifier) => {
+  if (!classifier) return 'MODEL';
+  return classifier
+    .toString()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
 const MLDashboard = () => {
   const [metrics, setMetrics] = useState(null);
+  const [comparisons, setComparisons] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const comparisonCacheRef = useRef(null);
 
   useEffect(() => {
     mlService.getMetrics().then(setMetrics).catch(console.error).finally(() => setLoading(false));
   }, []);
+
+  const handleLoadComparison = async () => {
+    // Use cached comparison data if available
+    if (comparisonCacheRef.current) {
+      setComparisons(comparisonCacheRef.current);
+      setShowComparison(true);
+      return;
+    }
+
+    setComparisonLoading(true);
+    try {
+      const data = await mlService.compareClassifiers();
+      comparisonCacheRef.current = data.comparisons;
+      setComparisons(data.comparisons);
+      setShowComparison(true);
+    } catch (err) {
+      console.error('Failed to load comparisons:', err);
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
@@ -55,7 +88,46 @@ const MLDashboard = () => {
     { name: 'F1 Score',  value: metrics.f1_score   * 100, color: '#ff8800' },
   ];
 
+  // Build comparison chart data
+  const comparisonChartData = comparisons ? [
+    {
+      metric: 'Accuracy',
+      knn: (comparisons.knn?.accuracy || 0) * 100,
+      naive_bayes: (comparisons.naive_bayes?.accuracy || 0) * 100,
+      svm: (comparisons.svm?.accuracy || 0) * 100,
+    },
+    {
+      metric: 'Precision',
+      knn: (comparisons.knn?.precision || 0) * 100,
+      naive_bayes: (comparisons.naive_bayes?.precision || 0) * 100,
+      svm: (comparisons.svm?.precision || 0) * 100,
+    },
+    {
+      metric: 'Recall',
+      knn: (comparisons.knn?.recall || 0) * 100,
+      naive_bayes: (comparisons.naive_bayes?.recall || 0) * 100,
+      svm: (comparisons.svm?.recall || 0) * 100,
+    },
+    {
+      metric: 'F1 Score',
+      knn: (comparisons.knn?.f1_score || 0) * 100,
+      naive_bayes: (comparisons.naive_bayes?.f1_score || 0) * 100,
+      svm: (comparisons.svm?.f1_score || 0) * 100,
+    },
+  ] : [];
+
+  // Find best classifier
+  const findBestClassifier = () => {
+    if (!comparisons) return null;
+    const classifiers = Object.entries(comparisons)
+      .filter(([_, data]) => !data.error && data.accuracy)
+      .sort(([_, a], [__, b]) => (b.accuracy || 0) - (a.accuracy || 0));
+    return classifiers[0] ? classifiers[0][0] : null;
+  };
+
+  const bestClassifier = findBestClassifier();
   const [[tn, fp], [fn, tp]] = metrics.confusion_matrix;
+  const classifierLabel = formatClassifierLabel(metrics.classifier || localStorage.getItem('selectedClassifier'));
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
@@ -64,11 +136,11 @@ const MLDashboard = () => {
         <Activity style={{ width: 22, height: 22, color: 'var(--clr-green)' }} />
         <div>
           <h1 className="font-military text-glow-green" style={{ fontSize: 24, color: 'var(--clr-green)', marginBottom: 2 }}>ML ANALYTICS TERMINAL</h1>
-          <div className="font-terminal" style={{ fontSize: 10, color: 'var(--clr-text-dim)' }}>kNN PERFORMANCE INTELLIGENCE — LIVE</div>
+          <div className="font-terminal" style={{ fontSize: 10, color: 'var(--clr-text-dim)' }}>{classifierLabel} PERFORMANCE INTELLIGENCE — LIVE</div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
           <span className="status-dot" />
-          <span className="font-terminal" style={{ fontSize: 10, color: 'var(--clr-text-dim)' }}>MODEL ACTIVE</span>
+          <span className="font-terminal" style={{ fontSize: 10, color: 'var(--clr-text-dim)' }}>{classifierLabel} ACTIVE</span>
         </div>
       </motion.div>
 
@@ -81,8 +153,8 @@ const MLDashboard = () => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        {/* Bar chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Line Chart - Performance Metrics */}
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .2 }} className="glass-panel" style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
             <Radio style={{ width: 14, height: 14, color: 'var(--clr-green)' }} />
@@ -90,14 +162,13 @@ const MLDashboard = () => {
           </div>
           <div style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
-                <XAxis type="number" domain={[0, 100]} stroke="rgba(0,255,136,.2)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-                <YAxis dataKey="name" type="category" stroke="rgba(0,255,136,.2)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} width={70} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,255,136,.04)' }} />
-                <Bar dataKey="value" radius={[0, 3, 3, 0]}>
-                  {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Bar>
-              </BarChart>
+              <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}>
+                <CartesianGrid stroke="rgba(0,255,136,.1)" vertical={false} />
+                <XAxis dataKey="name" stroke="rgba(0,255,136,.3)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+                <YAxis domain={[0, 100]} stroke="rgba(0,255,136,.3)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,255,136,.2)', strokeWidth: 2 }} />
+                <Line type="monotone" dataKey="value" stroke="var(--clr-cyan)" strokeWidth={3} dot={{ fill: 'var(--clr-cyan)', r: 5 }} activeDot={{ r: 7 }} isAnimationActive={true} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
@@ -145,6 +216,129 @@ const MLDashboard = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Classifier Comparison Section */}
+      {!showComparison && (
+        <motion.button
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          onClick={handleLoadComparison}
+          disabled={comparisonLoading}
+          className="btn-mil btn-mil-cyan"
+          style={{ width: '100%', padding: '12px 16px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}
+        >
+          {comparisonLoading
+            ? <>
+              <TrendingUp style={{ width: 14, height: 14, animation: 'radar-sweep .8s linear infinite' }} /> ANALYZING ALL CLASSIFIERS…
+            </>
+            : <>
+              <BarChart3 style={{ width: 14, height: 14 }} /> COMPARE ALL CLASSIFIERS
+            </>
+          }
+        </motion.button>
+      )}
+
+      {showComparison && comparisons && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ marginTop: 28 }}>
+          {/* Comparison Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <BarChart3 style={{ width: 18, height: 18, color: 'var(--clr-cyan)' }} />
+              <div>
+                <h2 className="font-military text-glow-cyan" style={{ fontSize: 18, color: 'var(--clr-cyan)', marginBottom: 2 }}>CLASSIFIER COMPARISON MATRIX</h2>
+                <div className="font-terminal" style={{ fontSize: 9, color: 'var(--clr-text-dim)' }}>PERFORMANCE ANALYSIS OF ALL 3 ALGORITHMS</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowComparison(false)}
+              className="btn-mil"
+              style={{ padding: '6px 12px', fontSize: 11 }}
+            >
+              HIDE
+            </button>
+          </div>
+
+          {/* Comparison Bar Chart */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="glass-panel" style={{ padding: 24, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <TrendingUp style={{ width: 14, height: 14, color: 'var(--clr-cyan)' }} />
+              <span className="font-military" style={{ fontSize: 13, color: 'var(--clr-cyan)' }}>METRIC COMPARISON</span>
+            </div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid stroke="rgba(0,255,136,.1)" vertical={false} />
+                  <XAxis dataKey="metric" stroke="rgba(0,255,136,.3)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+                  <YAxis domain={[0, 100]} stroke="rgba(0,255,136,.3)" tick={{ fill: '#4a9a6a', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,255,136,.04)' }} />
+                  <Legend wrapperStyle={{ paddingTop: 20, color: '#4a9a6a', fontFamily: 'Share Tech Mono', fontSize: 11 }} />
+                  <Bar dataKey="knn" fill="#00ff88" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="naive_bayes" fill="#00d4ff" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="svm" fill="#ffd700" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          {/* Detailed Metrics Table */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="glass-panel" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <Zap style={{ width: 14, height: 14, color: 'var(--clr-green)' }} />
+              <span className="font-military" style={{ fontSize: 13, color: 'var(--clr-green)' }}>DETAILED METRICS TABLE</span>
+              {bestClassifier && (
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--clr-cyan)' }} className="font-terminal">
+                  BEST: {formatClassifierLabel(bestClassifier)}
+                </span>
+              )}
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table className="font-terminal" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--clr-border)' }}>
+                    <th style={{ textAlign: 'left', padding: '10px', color: 'var(--clr-text-dim)' }}>CLASSIFIER</th>
+                    <th style={{ textAlign: 'center', padding: '10px', color: 'var(--clr-text-dim)' }}>ACCURACY</th>
+                    <th style={{ textAlign: 'center', padding: '10px', color: 'var(--clr-text-dim)' }}>PRECISION</th>
+                    <th style={{ textAlign: 'center', padding: '10px', color: 'var(--clr-text-dim)' }}>RECALL</th>
+                    <th style={{ textAlign: 'center', padding: '10px', color: 'var(--clr-text-dim)' }}>F1 SCORE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(comparisons).map(([name, data]) => {
+                    if (data.error) return null;
+                    const isBest = name === bestClassifier;
+                    const color = isBest ? 'var(--clr-green)' : 'var(--clr-text)';
+                    return (
+                      <tr key={name} style={{ borderBottom: '1px solid var(--clr-border)', background: isBest ? 'rgba(0,255,136,0.05)' : 'transparent' }}>
+                        <td style={{ padding: '10px', color, fontWeight: isBest ? 'bold' : 'normal' }}>
+                          {formatClassifierLabel(name)}
+                          {isBest && <span style={{ marginLeft: 8, color: 'var(--clr-green)' }}>★</span>}
+                        </td>
+                        <td style={{ textAlign: 'center', padding: '10px', color }}>{(data.accuracy * 100).toFixed(2)}%</td>
+                        <td style={{ textAlign: 'center', padding: '10px', color }}>{(data.precision * 100).toFixed(2)}%</td>
+                        <td style={{ textAlign: 'center', padding: '10px', color }}>{(data.recall * 100).toFixed(2)}%</td>
+                        <td style={{ textAlign: 'center', padding: '10px', color }}>{(data.f1_score * 100).toFixed(2)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {bestClassifier && (
+              <div className="glass-panel glow-green" style={{ marginTop: 16, padding: '12px 16px', borderRadius: 4 }}>
+                <div className="font-military" style={{ color: 'var(--clr-green)', fontSize: 12, marginBottom: 6 }}>
+                  ✓ RECOMMENDATION
+                </div>
+                <p className="font-terminal" style={{ fontSize: 10, color: 'rgba(160,255,200,.8)', lineHeight: 1.6 }}>
+                  {formatClassifierLabel(bestClassifier)} achieved the highest overall accuracy. Consider switching to this classifier in the Config panel for optimal operational performance.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

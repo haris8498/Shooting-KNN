@@ -5,6 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Crosshair, Volume2, VolumeX, Radio, Shield, Target, AlertTriangle, Activity, Zap } from 'lucide-react';
 import useSound from '../hooks/useSound';
 
+const formatClassifierLabel = (classifier) => {
+  if (!classifier) return 'Model';
+  return classifier.toString().replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+};
+
 const MAX_PLANES = 10;
 
 const Pip = ({ label, value, color = 'var(--clr-green)', max = 100 }) => {
@@ -171,6 +176,7 @@ const Gameplay = () => {
   const hpColor = hp > 60 ? 'var(--clr-green)' : hp > 30 ? 'var(--clr-orange)' : 'var(--clr-red)';
   const f = selectedPlane?.features;
   const isEnemy = predictionData?.prediction === 'Enemy';
+  const classifierLabel = formatClassifierLabel(localStorage.getItem('selectedClassifier') || 'kNN');
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--clr-bg)', overflow: 'hidden' }}>
@@ -214,7 +220,7 @@ const Gameplay = () => {
                   <div style={{ position: 'absolute', bottom: '50%', left: '50%', width: 21, height: 1, background: 'var(--clr-green)', transformOrigin: 'left center', opacity: .6 }} />
                 </div>
                 <p className="font-terminal" style={{ fontSize: 10, color: 'var(--clr-text-dim)', lineHeight: 1.9 }}>
-                  {selectedPlane ? 'QUERYING kNN…' : 'AWAITING TARGET LOCK'}<br /><span className="animate-blink">█</span>
+                  {selectedPlane ? `QUERYING ${classifierLabel}…` : 'AWAITING TARGET LOCK'}<br /><span className="animate-blink">█</span>
                 </p>
               </div>
             ) : (
@@ -237,7 +243,7 @@ const Gameplay = () => {
                   </>}
                 </div>
                 <div>
-                  <div className="font-terminal" style={{ fontSize: 9, color: 'var(--clr-text-dim)', marginBottom: 6 }}>kNN NEIGHBORS</div>
+                  <div className="font-terminal" style={{ fontSize: 9, color: 'var(--clr-text-dim)', marginBottom: 6 }}>{classifierLabel.toUpperCase()} NEIGHBORS</div>
                   {predictionData.neighbors?.map((n, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: n.class === 'Enemy' ? 'var(--clr-red)' : 'var(--clr-cyan)', flexShrink: 0 }} />
