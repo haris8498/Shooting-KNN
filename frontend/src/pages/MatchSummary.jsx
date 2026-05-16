@@ -23,6 +23,12 @@ const MatchSummary = () => {
   const { state } = useLocation();
   if (!state) return <Navigate to="/" />;
 
+  const formatClassifierLabel = (classifier) => {
+    if (!classifier) return 'Model';
+    return classifier.toString().replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  };
+  const classifierLabel = formatClassifierLabel(localStorage.getItem('selectedClassifier') || 'kNN');
+
   const { score, correctEnemyKills, friendlyFireMistakes, missedEnemies, totalPlanes } = state;
   const accuracy = totalPlanes > 0
     ? ((correctEnemyKills + (totalPlanes - correctEnemyKills - friendlyFireMistakes - missedEnemies)) / totalPlanes * 100)
@@ -33,7 +39,7 @@ const MatchSummary = () => {
     if (friendlyFireMistakes > 2) advice.push({ text: 'High friendly-fire rate. Decrease K to make the model more locally sensitive, or try Manhattan distance.', type: 'warn' });
     if (missedEnemies > 2)        advice.push({ text: 'Enemies slipping through. Model may be underfitting — increase training data ratio to 80/20 or higher.', type: 'warn' });
     if (accuracy < 60)            advice.push({ text: 'Low overall accuracy. Try a higher K to smooth out noisy predictions. StandardScaler is active.', type: 'crit' });
-    if (advice.length === 0)      advice.push({ text: 'Excellent performance. kNN parameters are well-tuned for this operational environment.', type: 'ok' });
+    if (advice.length === 0)      advice.push({ text: `Excellent performance. ${classifierLabel} parameters are well-tuned for this operational environment.`, type: 'ok' });
     return advice;
   };
 

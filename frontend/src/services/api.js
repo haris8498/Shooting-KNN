@@ -23,6 +23,14 @@ export const mlService = {
   getRandomPlane: async () => {
     const res = await axios.get(`${ML_API}/random_plane`);
     return res.data;
+  },
+  getAvailableClassifiers: async () => {
+    const res = await axios.get(`${ML_API}/classifiers`);
+    return res.data;
+  },
+  compareClassifiers: async () => {
+    const res = await axios.get(`${ML_API}/compare`);
+    return res.data;
   }
 };
 

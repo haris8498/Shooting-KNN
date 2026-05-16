@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Home from './pages/Home';
 import ModelConfig from './pages/ModelConfig';
 import MLDashboard from './pages/MLDashboard';
@@ -8,6 +9,18 @@ import { Shield, Settings, Activity, Target } from 'lucide-react';
 
 function NavBar() {
   const location = useLocation();
+  const [classifier, setClassifier] = useState(() => localStorage.getItem('selectedClassifier') || 'KNN');
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem('selectedClassifier') || 'knn';
+      const displayName = stored.toUpperCase().replace('_', ' ');
+      setClassifier(displayName);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   if (location.pathname === '/play') return null;
 
   return (
@@ -20,7 +33,7 @@ function NavBar() {
           </div>
           <div>
             <div className="font-military text-glow-green" style={{ fontSize:14, color:'var(--clr-green)', lineHeight:1.1 }}>AI DEFENSE SYSTEM</div>
-            <div className="font-terminal" style={{ fontSize:10, color:'var(--clr-text-dim)' }}>kNN TACTICAL COMMAND</div>
+            <div className="font-terminal" style={{ fontSize:10, color:'var(--clr-text-dim)' }}>TACTICAL COMMAND</div>
           </div>
         </Link>
 

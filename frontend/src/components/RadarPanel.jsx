@@ -3,6 +3,12 @@ import { motion } from 'framer-motion';
 import { Radio } from 'lucide-react';
 
 const RadarPanel = ({ incomingPlane, predictionData }) => {
+  const formatClassifierLabel = (classifier) => {
+    if (!classifier) return 'Model';
+    return classifier.toString().replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  };
+
+  const classifierLabel = formatClassifierLabel(localStorage.getItem('selectedClassifier') || 'kNN');
   // This component is no longer used in the new Gameplay layout;
   // ML analysis is rendered inline in Gameplay.jsx left panel.
   // Kept for backward compatibility.
@@ -58,7 +64,7 @@ const RadarPanel = ({ incomingPlane, predictionData }) => {
 
       {predictionData.neighbors?.length > 0 && (
         <div style={{ marginTop: 12, borderTop: '1px solid var(--clr-border)', paddingTop: 10 }}>
-          <div className="font-terminal" style={{ fontSize: 9, color: 'var(--clr-text-dim)', marginBottom: 6 }}>kNN NEIGHBORS</div>
+          <div className="font-terminal" style={{ fontSize: 9, color: 'var(--clr-text-dim)', marginBottom: 6 }}>{classifierLabel.toUpperCase()} NEIGHBORS</div>
           {predictionData.neighbors.map((n, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span className="font-terminal" style={{ fontSize: 10, color: n.class === 'Enemy' ? 'var(--clr-red)' : 'var(--clr-cyan)' }}>#{i + 1} {n.class}</span>
