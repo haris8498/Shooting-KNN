@@ -152,6 +152,15 @@ const Gameplay = () => {
     try {
       const result = await mlService.predict(plane.features);
       setPredictionData(result);
+      backendService.savePrediction({
+        features: plane.features,
+        predictedLabel: result?.prediction || null,
+        confidence: result?.confidence ?? null,
+        classifier: result?.classifier || null,
+        actualLabel: plane.isEnemy ? 'Enemy' : 'Friendly',
+        isEnemy: plane.isEnemy,
+        planeId: plane.id
+      }).catch(console.error);
       soundRef.current.playRadarPing();
     } catch (err) { console.error(err); }
   }, []);

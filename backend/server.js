@@ -3,11 +3,32 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const morgan = require('morgan');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/';
+const DATABASE_NAME = process.env.MONGODB_DB || 'shooting_knn';
+const PREDICTIONS_COLLECTION = 'predictions';
+
+let mongoClient;
+let predictionsCollection;
+
+async function connectMongo() {
+    if (predictionsCollection) {
+        return predictionsCollection;
+    }
+
+    mongoClient = new MongoClient(MONGODB_URI);
+    await mongoClient.connect();
+    const db = mongoClient.db(DATABASE_NAME);
+    predictionsCollection = db.collection(PREDICTIONS_COLLECTION);
+    await predictionsCollection.createIndex({ createdAt: -1 });
+    return predictionsCollection;
+}
 
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
@@ -70,7 +91,47 @@ app.get('/api/game/stats', (req, res) => {
     }
 });
 
+app.post('/api/predictions', async (req, res) => {
+    try {
+        const collection = await connectMongo();
+        const payload = {
+            ...req.body,
+            createdAt: new Date()
+        };
+
+        const result = await collection.insertOne(payload);
+        res.status(201).json({ message: 'Prediction saved successfully', id: result.insertedId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to save prediction' });
+    }
+});
+
+app.get('/api/predictions', async (req, res) => {
+    try {
+        const collection = await connectMongo();
+        const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
+        const predictions = await collection
+            .find({})
+            .sort({ createdAt: -1 })
+            .limit(Number.isNaN(limit) ? 50 : limit)
+            .toArray();
+
+        res.status(200).json(predictions);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to read predictions' });
+    }
+});
+
 const PORT = 3000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    try {
+        await connectMongo();
+        console.log(`MongoDB connected at ${MONGODB_URI} using database "${DATABASE_NAME}"`);
+    } catch (err) {
+        console.error('MongoDB connection failed:', err.message);
+    }
+
     console.log(`Backend server running on port ${PORT}`);
 });

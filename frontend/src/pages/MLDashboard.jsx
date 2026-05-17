@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { mlService } from '../services/api';
-import { Activity, AlertTriangle, Radio, BarChart3, TrendingUp, Zap } from 'lucide-react';
+import { mlService, backendService } from '../services/api';
+import { Activity, AlertTriangle, Radio, BarChart3, TrendingUp, Zap, Database } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid } from 'recharts';
 import { motion } from 'framer-motion';
 
@@ -32,9 +32,12 @@ const formatClassifierLabel = (classifier) => {
 const MLDashboard = () => {
   const [metrics, setMetrics] = useState(null);
   const [comparisons, setComparisons] = useState(null);
+  const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [dbLoading, setDbLoading] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [showDatabase, setShowDatabase] = useState(false);
   const comparisonCacheRef = useRef(null);
 
   useEffect(() => {
@@ -59,6 +62,19 @@ const MLDashboard = () => {
       console.error('Failed to load comparisons:', err);
     } finally {
       setComparisonLoading(false);
+    }
+  };
+
+  const handleLoadDatabase = async () => {
+    setDbLoading(true);
+    try {
+      const data = await backendService.getPredictions(25);
+      setPredictions(data);
+      setShowDatabase(true);
+    } catch (err) {
+      console.error('Failed to load prediction database:', err);
+    } finally {
+      setDbLoading(false);
     }
   };
 
@@ -216,6 +232,54 @@ const MLDashboard = () => {
           )}
         </motion.div>
       </div>
+
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .3 }} className="glass-panel" style={{ padding: 24, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Database style={{ width: 14, height: 14, color: 'var(--clr-cyan)' }} />
+            <span className="font-military" style={{ fontSize: 13, color: 'var(--clr-cyan)' }}>PREDICTION DATABASE</span>
+          </div>
+          <button onClick={handleLoadDatabase} disabled={dbLoading} className="btn-mil btn-mil-cyan" style={{ padding: '8px 14px', fontSize: 12 }}>
+            {dbLoading ? 'LOADING...' : 'VIEW DATABASE'}
+          </button>
+        </div>
+
+        {showDatabase && (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ color: 'var(--clr-text-dim)', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 6px' }}>Time</th>
+                  <th style={{ padding: '8px 6px' }}>Predicted</th>
+                  <th style={{ padding: '8px 6px' }}>Actual</th>
+                  <th style={{ padding: '8px 6px' }}>Confidence</th>
+                  <th style={{ padding: '8px 6px' }}>Classifier</th>
+                  <th style={{ padding: '8px 6px' }}>Altitude</th>
+                  <th style={{ padding: '8px 6px' }}>Speed</th>
+                  <th style={{ padding: '8px 6px' }}>Distance</th>
+                  <th style={{ padding: '8px 6px' }}>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {predictions.map((item) => (
+                  <tr key={item._id} style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                    <td style={{ padding: '8px 6px', color: 'var(--clr-text-dim)' }}>{item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</td>
+                    <td style={{ padding: '8px 6px', color: item.predictedLabel === 'Enemy' ? 'var(--clr-red)' : 'var(--clr-green)' }}>{item.predictedLabel || '-'}</td>
+                    <td style={{ padding: '8px 6px', color: item.actualLabel === 'Enemy' ? 'var(--clr-red)' : 'var(--clr-green)' }}>{item.actualLabel || '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{typeof item.confidence === 'number' ? `${(item.confidence * 100).toFixed(1)}%` : '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{item.classifier ?? '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{item.features?.Altitude ?? '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{item.features?.Speed ?? '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{item.features?.Distance_From_Base ?? '-'}</td>
+                    <td style={{ padding: '8px 6px' }}>{item.features?.Plane_Size ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!predictions.length && <div className="font-terminal" style={{ padding: '12px 6px', color: 'var(--clr-text-dim)' }}>No prediction records found yet.</div>}
+          </div>
+        )}
+      </motion.div>
 
       {/* Classifier Comparison Section */}
       {!showComparison && (

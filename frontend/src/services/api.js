@@ -39,8 +39,16 @@ export const backendService = {
     const res = await axios.post(`${BACKEND_API}/game/save`, matchData);
     return res.data;
   },
+  savePrediction: async (predictionData) => {
+    const res = await axios.post(`${BACKEND_API}/predictions`, predictionData);
+    return res.data;
+  },
   getHistory: async () => {
     const res = await axios.get(`${BACKEND_API}/game/history`);
+    return res.data;
+  },
+  getPredictions: async (limit = 50) => {
+    const res = await axios.get(`${BACKEND_API}/predictions`, { params: { limit } });
     return res.data;
   },
   getStats: async () => {

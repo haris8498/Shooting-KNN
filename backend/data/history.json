@@ -1,5 +1,32 @@
 [
   {
+    "score": 80,
+    "correctEnemyKills": 4,
+    "friendlyFireMistakes": 1,
+    "missedEnemies": 6,
+    "totalPlanes": 20,
+    "id": 1779019116873,
+    "date": "2026-05-17T11:58:36.873Z"
+  },
+  {
+    "score": 160,
+    "correctEnemyKills": 4,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 6,
+    "totalPlanes": 26,
+    "id": 1779018949887,
+    "date": "2026-05-17T11:55:49.887Z"
+  },
+  {
+    "score": 140,
+    "correctEnemyKills": 4,
+    "friendlyFireMistakes": 0,
+    "missedEnemies": 6,
+    "totalPlanes": 24,
+    "id": 1779018474900,
+    "date": "2026-05-17T11:47:54.900Z"
+  },
+  {
     "score": 70,
     "correctEnemyKills": 3,
     "friendlyFireMistakes": 0,
